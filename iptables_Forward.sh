@@ -44,6 +44,11 @@ if [[ $protocol != "tcp" && $protocol != "udp" ]]; then
     exit 1
 fi
 
+# 获取本机的IPv4和IPv6地址
+ipv4_address=$(hostname -I | awk '{print $1}')
+ipv6_address=$(ip -6 addr show | awk '/inet6/ && /scope global/ {print $2}' | sed 's%/%[%g; s%$%]:%g' | head -n 1)
+
+
 if [[ $protocol_choice -eq 1 ]]; then
     # IPv4配置
     read -p "Enter the local port to forward: " local_port
@@ -60,10 +65,10 @@ if [[ $protocol_choice -eq 1 ]]; then
 
     # 设置 POSTROUTING 规则
     if [[ $protocol == "tcp" ]]; then
-        iptables -t nat -A POSTROUTING -o $interface -p tcp -d $target_ip --dport $target_port -j SNAT --to-source $(hostname -I | awk '{print $1}')
-        iptables -t nat -A POSTROUTING -o $interface -p udp -d $target_ip --dport $target_port -j SNAT --to-source $(hostname -I | awk '{print $1}')
+        iptables -t nat -A POSTROUTING -o $interface -p tcp -d $target_ip --dport $target_port -j SNAT --to-source $ipv4_address
+        iptables -t nat -A POSTROUTING -o $interface -p udp -d $target_ip --dport $target_port -j SNAT --to-source $ipv4_address
     elif [[ $protocol == "udp" ]]; then
-        iptables -t nat -A POSTROUTING -o $interface -p udp -d $target_ip --dport $target_port -j SNAT --to-source $(hostname -I | awk '{print $1}')
+        iptables -t nat -A POSTROUTING -o $interface -p udp -d $target_ip --dport $target_port -j SNAT --to-source $ipv4_address
     fi
 
     # 设置 FORWARD 规则
@@ -75,6 +80,7 @@ if [[ $protocol_choice -eq 1 ]]; then
         iptables -A FORWARD -i $interface -p udp -d $target_ip --dport $target_port -j ACCEPT
     fi
 
+
 elif [[ $protocol_choice -eq 2 ]]; then
     # IPv6配置
     read -p "Enter the local port to forward: " local_port
@@ -85,17 +91,17 @@ elif [[ $protocol_choice -eq 2 ]]; then
     if [[ $protocol == "tcp" ]]; then
         # TCP转发
         ip6tables -t nat -A PREROUTING -i $interface -p tcp --dport $local_port -j DNAT --to-destination $target_ip:$target_port
-        ip6tables -t nat -A POSTROUTING -o $interface -p tcp -d $target_ip --dport $target_port -j SNAT --to-source $(hostname -I | awk '{print $1}')
+        ip6tables -t nat -A POSTROUTING -o $interface -p tcp -d $target_ip --dport $target_port -j SNAT --to-source $ipv6_address
 
         # UDP转发
         ip6tables -t nat -A PREROUTING -i $interface -p udp --dport $local_port -j DNAT --to-destination $target_ip:$target_port
-        ip6tables -t nat -A POSTROUTING -o $interface -p udp -d $target_ip --dport $target_port -j SNAT --to-source $(hostname -I | awk '{print $1}')
+        ip6tables -t nat -A POSTROUTING -o $interface -p udp -d $target_ip --dport $target_port -j SNAT --to-source $ipv6_address
     elif [[ $protocol == "udp" ]]; then
         # 仅UDP转发
         ip6tables -t nat -A PREROUTING -i $interface -p udp --dport $local_port -j DNAT --to-destination $target_ip:$target_port
-        ip6tables -t nat -A POSTROUTING -o $interface -p udp -d $target_ip --dport $target_port -j SNAT --to-source $(hostname -I | awk '{print $1}')
+        ip6tables -t nat -A POSTROUTING -o $interface -p udp -d $target_ip --dport $target_port -j SNAT --to-source $ipv6_address
     fi
-
+    
     # 设置 FORWARD 规则
     ip6tables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
     if [[ $protocol == "tcp" ]]; then
