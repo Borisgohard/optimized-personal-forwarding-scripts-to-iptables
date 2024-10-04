@@ -78,24 +78,32 @@ if [[ $protocol_choice -eq 1 ]]; then
 elif [[ $protocol_choice -eq 2 ]]; then
     # IPv6配置
     read -p "Enter the local port to forward: " local_port
-    read -p "Enter the target IPv6 address: " target_ip
+    read -p "Enter the target IPv6 address (use [] for port if needed): " target_ip
     read -p "Enter the target port: " target_port
 
-    # 设置 PREROUTING 规则
+    # 设置 NAT 规则
     if [[ $protocol == "tcp" ]]; then
-        ip6tables -t filter -A FORWARD -i $interface -p tcp --dport $local_port -j DNAT --to-destination $target_ip:$target_port
-        ip6tables -t filter -A FORWARD -i $interface -p udp --dport $local_port -j DNAT --to-destination $target_ip:$target_port
+        # TCP转发
+        ip6tables -t nat -A PREROUTING -i $interface -p tcp --dport $local_port -j DNAT --to-destination $target_ip:$target_port
+        ip6tables -t nat -A POSTROUTING -o $interface -p tcp -d $target_ip --dport $target_port -j SNAT --to-source $(hostname -I | awk '{print $1}')
+
+        # UDP转发
+        ip6tables -t nat -A PREROUTING -i $interface -p udp --dport $local_port -j DNAT --to-destination $target_ip:$target_port
+        ip6tables -t nat -A POSTROUTING -o $interface -p udp -d $target_ip --dport $target_port -j SNAT --to-source $(hostname -I | awk '{print $1}')
     elif [[ $protocol == "udp" ]]; then
-        ip6tables -t filter -A FORWARD -i $interface -p udp --dport $local_port -j DNAT --to-destination $target_ip:$target_port
+        # 仅UDP转发
+        ip6tables -t nat -A PREROUTING -i $interface -p udp --dport $local_port -j DNAT --to-destination $target_ip:$target_port
+        ip6tables -t nat -A POSTROUTING -o $interface -p udp -d $target_ip --dport $target_port -j SNAT --to-source $(hostname -I | awk '{print $1}')
     fi
 
     # 设置 FORWARD 规则
-    ip6tables -A FORWARD -i $interface -o $interface -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+    ip6tables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
     if [[ $protocol == "tcp" ]]; then
-        ip6tables -A FORWARD -i $interface -p tcp -d $target_ip --dport $target_port -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
+        ip6tables -A FORWARD -p tcp -d $target_ip --dport $target_port -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
     elif [[ $protocol == "udp" ]]; then
-        ip6tables -A FORWARD -i $interface -p udp -d $target_ip --dport $target_port -j ACCEPT
+        ip6tables -A FORWARD -p udp -d $target_ip --dport $target_port -j ACCEPT
     fi
+    
 
 else
     echo "Invalid choice. Exiting."
