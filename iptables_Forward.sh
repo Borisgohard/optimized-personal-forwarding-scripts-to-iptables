@@ -69,7 +69,7 @@ if [[ $protocol_choice -eq 1 ]]; then
     # 设置 FORWARD 规则
     iptables -A FORWARD -i $interface -o $interface -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
     if [[ $protocol == "tcp" ]]; then
-        iptables -A FORWARD -i $interface -p tcp -d $target_ip --dport $target_port -j ACCEPT
+        iptables -A FORWARD -i $interface -p tcp -d $target_ip --dport $target_port -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
         iptables -A FORWARD -i $interface -p udp -d $target_ip --dport $target_port -j ACCEPT
     elif [[ $protocol == "udp" ]]; then
         iptables -A FORWARD -i $interface -p udp -d $target_ip --dport $target_port -j ACCEPT
@@ -84,6 +84,7 @@ elif [[ $protocol_choice -eq 2 ]]; then
     # 设置 PREROUTING 规则
     if [[ $protocol == "tcp" ]]; then
         ip6tables -t filter -A FORWARD -i $interface -p tcp --dport $local_port -j DNAT --to-destination $target_ip:$target_port
+        ip6tables -t filter -A FORWARD -i $interface -p udp --dport $local_port -j DNAT --to-destination $target_ip:$target_port
     elif [[ $protocol == "udp" ]]; then
         ip6tables -t filter -A FORWARD -i $interface -p udp --dport $local_port -j DNAT --to-destination $target_ip:$target_port
     fi
@@ -91,7 +92,7 @@ elif [[ $protocol_choice -eq 2 ]]; then
     # 设置 FORWARD 规则
     ip6tables -A FORWARD -i $interface -o $interface -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
     if [[ $protocol == "tcp" ]]; then
-        ip6tables -A FORWARD -i $interface -p tcp -d $target_ip --dport $target_port -j ACCEPT
+        ip6tables -A FORWARD -i $interface -p tcp -d $target_ip --dport $target_port -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
     elif [[ $protocol == "udp" ]]; then
         ip6tables -A FORWARD -i $interface -p udp -d $target_ip --dport $target_port -j ACCEPT
     fi
