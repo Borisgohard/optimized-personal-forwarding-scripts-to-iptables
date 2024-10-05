@@ -21,10 +21,20 @@ fi
 iptables -F
 iptables -t nat -F
 
-# 启用数据转发
-echo "Enabling IP forwarding..."
-echo 1 > /proc/sys/net/ipv4/ip_forward
-echo 1 > /proc/sys/net/ipv6/conf/all/forwarding
+# 启用数据转发并永久化设置
+echo "Enabling IP forwarding permanently..."
+
+# 修改 /etc/sysctl.conf 文件以永久启用转发
+if ! grep -q "net.ipv4.ip_forward=1" /etc/sysctl.conf; then
+    echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+fi
+
+if ! grep -q "net.ipv6.conf.all.forwarding=1" /etc/sysctl.conf; then
+    echo "net.ipv6.conf.all.forwarding=1" >> /etc/sysctl.conf
+fi
+
+# 立即应用设置
+sysctl -p
 
 # 选择协议
 echo "Select the protocol for forwarding:"
