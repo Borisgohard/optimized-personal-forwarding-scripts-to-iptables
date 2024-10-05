@@ -118,7 +118,7 @@ elif [[ $protocol_choice -eq 2 ]]; then
     fi
     
     # 提取IPv6地址和端口
-    target_ip="$(echo "$input_str" | sed -E 's/\[([0-9a-fA-F:]+)\]:([0-9]+)$/\1/')"     # 提取ipv6地址
+    target_ip="$(echo "$target_ip_port" | sed -E 's/\[([0-9a-fA-F:]+)\]:([0-9]+)$/\1/')"     # 提取ipv6地址
     target_port="${target_ip_port##*:}"    # 提取端口部分
     
     # 确保提取正确
