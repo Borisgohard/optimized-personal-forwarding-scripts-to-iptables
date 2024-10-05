@@ -1,5 +1,6 @@
 #!/bin/bash
-
+# 发生错误时退出
+set -e
 # 检查并安装iptables
 if ! command -v iptables &> /dev/null; then
     echo "iptables未安装，正在安装..."
