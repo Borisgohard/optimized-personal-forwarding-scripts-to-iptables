@@ -145,26 +145,27 @@ elif [[ $protocol_choice -eq 2 ]]; then
 
     # 打印调试信息
     echo "Local Port: $local_port"
-    echo "Target IP: $target_ip"
     echo "Target Port: $target_port"
+    echo "Target IP: $target_ip"
+    
     
     # 设置 NAT 规则
     if [[ $protocol == "tcp" ]]; then
         # TCP转发
-        echo "Running command: ip6tables -t nat -A PREROUTING -i $interface -p tcp --dport $local_port -j DNAT --to-destination $target_ip:$target_port"
-        ip6tables -t nat -A PREROUTING -i "$interface" -p tcp --dport "$local_port" -j DNAT --to-destination "$target_ip:$target_port"
+        echo "Running command: ip6tables -t nat -A PREROUTING -i $interface -p tcp --dport $local_port -j DNAT --to-destination $target_ip"
+        ip6tables -t nat -A PREROUTING -i "$interface" -p tcp --dport "$local_port" -j DNAT --to-destination "$target_ip"
         echo "Running command: ip6tables -t nat -A POSTROUTING -o $interface -p tcp -d $target_ip --dport $target_port -j SNAT --to-source $ipv6_address"
         ip6tables -t nat -A POSTROUTING -o "$interface" -p tcp -d "$target_ip" --dport "$target_port" -j SNAT --to-source "$ipv6_address"
 
         # UDP转发
-        echo "Running command: ip6tables -t nat -A PREROUTING -i $interface -p udp --dport $local_port -j DNAT --to-destination $target_ip:$target_port"
-        ip6tables -t nat -A PREROUTING -i "$interface" -p udp --dport "$local_port" -j DNAT --to-destination "$target_ip:$target_port"
+        echo "Running command: ip6tables -t nat -A PREROUTING -i $interface -p udp --dport $local_port -j DNAT --to-destination $target_ip"
+        ip6tables -t nat -A PREROUTING -i "$interface" -p udp --dport "$local_port" -j DNAT --to-destination "$target_ip"
         echo "Running command: ip6tables -t nat -A POSTROUTING -o $interface -p udp -d $target_ip --dport $target_port -j SNAT --to-source $ipv6_address"
         ip6tables -t nat -A POSTROUTING -o "$interface" -p udp -d "$target_ip" --dport "$target_port" -j SNAT --to-source "$ipv6_address"
     elif [[ $protocol == "udp" ]]; then
         # 仅UDP转发
-        echo "Running command: ip6tables -t nat -A PREROUTING -i $interface -p udp --dport $local_port -j DNAT --to-destination $target_ip:$target_port"
-        ip6tables -t nat -A PREROUTING -i "$interface" -p udp --dport "$local_port" -j DNAT --to-destination "$target_ip:$target_port"
+        echo "Running command: ip6tables -t nat -A PREROUTING -i $interface -p udp --dport $local_port -j DNAT --to-destination $target_ip"
+        ip6tables -t nat -A PREROUTING -i "$interface" -p udp --dport "$local_port" -j DNAT --to-destination "$target_ip"
         echo "Running command: ip6tables -t nat -A POSTROUTING -o $interface -p udp -d $target_ip --dport $target_port -j SNAT --to-source $ipv6_address"
         ip6tables -t nat -A POSTROUTING -o "$interface" -p udp -d "$target_ip" --dport "$target_port" -j SNAT --to-source "$ipv6_address"
     fi
