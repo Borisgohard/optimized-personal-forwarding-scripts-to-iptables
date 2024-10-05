@@ -96,15 +96,15 @@ elif [[ $protocol_choice -eq 2 ]]; then
     read -p "Enter the local port to forward: " local_port
     read -p "Enter the target IPv6 address (use [IPV6_ADDRESS]:PORT format): " target_ip_port
     
-    # 确保输入格式正确
-    if [[ ! "$target_ip_port" =~ ^\[[0-9a-fA-F:]+\]:[0-9]+$ ]]; then
-        echo "Invalid target address format. Use [IPV6_ADDRESS]:PORT format. Exiting."
-        exit 1
-    fi
+# 确保输入格式正确
+if [[ ! "$target_ip_port" =~ ^\[[0-9a-fA-F:]+\]:[0-9]+$ ]]; then
+    echo "Invalid target address format. Use [IPV6_ADDRESS]:PORT format. Exiting."
+    exit 1
+fi
 
-    # 提取IPv6地址和端口
-    target_ip=${target_ip_port%%:*}
-    target_port=${target_ip_port##*:}
+# 提取IPv6地址和端口，确保保留方括号
+target_ip="$target_ip_port"
+target_port=${target_ip_port##*:}
 
     # 设置 NAT 规则
     if [[ $protocol == "tcp" ]]; then
