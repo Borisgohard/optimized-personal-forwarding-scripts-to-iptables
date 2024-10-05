@@ -103,8 +103,8 @@ elif [[ $protocol_choice -eq 2 ]]; then
     fi
 
     # 提取IPv6地址和端口，确保保留方括号
-    target_ip="$target_ip_port"
-    target_port=${target_ip_port##*:}
+    target_ip="${target_ip_port%:*}"  # 只保留IPv6地址部分
+    target_port="${target_ip_port##*:}"  # 提取端口部分
 
     # 检查端口是否为空
     if [[ -z "$local_port" || -z "$target_port" ]]; then
@@ -116,7 +116,7 @@ elif [[ $protocol_choice -eq 2 ]]; then
     echo "Local Port: $local_port"
     echo "Target IP: $target_ip"
     echo "Target Port: $target_port"
-
+    
     # 设置 NAT 规则
     if [[ $protocol == "tcp" ]]; then
         # TCP转发
