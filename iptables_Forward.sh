@@ -112,6 +112,17 @@ elif [[ $protocol_choice -eq 2 ]]; then
         exit 1
     fi
 
+    # 检查端口是否为有效数字且在合法范围内
+    if ! [[ "$local_port" =~ ^[0-9]+$ ]] || ! [[ "$target_port" =~ ^[0-9]+$ ]]; then
+        echo "Local port or target port is not a valid number. Exiting."
+        exit 1
+    fi
+
+    if (( local_port < 1 || local_port > 65535 || target_port < 1 || target_port > 65535 )); then
+        echo "Local port or target port is out of range (1-65535). Exiting."
+        exit 1
+    fi
+
     # 打印调试信息
     echo "Local Port: $local_port"
     echo "Target IP: $target_ip"
@@ -120,23 +131,32 @@ elif [[ $protocol_choice -eq 2 ]]; then
     # 设置 NAT 规则
     if [[ $protocol == "tcp" ]]; then
         # TCP转发
+        echo "Running command: ip6tables -t nat -A PREROUTING -i $interface -p tcp --dport $local_port -j DNAT --to-destination $target_ip:$target_port"
         ip6tables -t nat -A PREROUTING -i "$interface" -p tcp --dport "$local_port" -j DNAT --to-destination "$target_ip:$target_port"
+        echo "Running command: ip6tables -t nat -A POSTROUTING -o $interface -p tcp -d $target_ip --dport $target_port -j SNAT --to-source $ipv6_address"
         ip6tables -t nat -A POSTROUTING -o "$interface" -p tcp -d "$target_ip" --dport "$target_port" -j SNAT --to-source "$ipv6_address"
 
         # UDP转发
+        echo "Running command: ip6tables -t nat -A PREROUTING -i $interface -p udp --dport $local_port -j DNAT --to-destination $target_ip:$target_port"
         ip6tables -t nat -A PREROUTING -i "$interface" -p udp --dport "$local_port" -j DNAT --to-destination "$target_ip:$target_port"
+        echo "Running command: ip6tables -t nat -A POSTROUTING -o $interface -p udp -d $target_ip --dport $target_port -j SNAT --to-source $ipv6_address"
         ip6tables -t nat -A POSTROUTING -o "$interface" -p udp -d "$target_ip" --dport "$target_port" -j SNAT --to-source "$ipv6_address"
     elif [[ $protocol == "udp" ]]; then
         # 仅UDP转发
+        echo "Running command: ip6tables -t nat -A PREROUTING -i $interface -p udp --dport $local_port -j DNAT --to-destination $target_ip:$target_port"
         ip6tables -t nat -A PREROUTING -i "$interface" -p udp --dport "$local_port" -j DNAT --to-destination "$target_ip:$target_port"
+        echo "Running command: ip6tables -t nat -A POSTROUTING -o $interface -p udp -d $target_ip --dport $target_port -j SNAT --to-source $ipv6_address"
         ip6tables -t nat -A POSTROUTING -o "$interface" -p udp -d "$target_ip" --dport "$target_port" -j SNAT --to-source "$ipv6_address"
     fi
 
     # 设置 FORWARD 规则
+    echo "Running command: ip6tables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT"
     ip6tables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
     if [[ $protocol == "tcp" ]]; then
+        echo "Running command: ip6tables -A FORWARD -p tcp -d $target_ip --dport $target_port -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT"
         ip6tables -A FORWARD -p tcp -d "$target_ip" --dport "$target_port" -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
     elif [[ $protocol == "udp" ]]; then
+        echo "Running command: ip6tables -A FORWARD -p udp -d $target_ip --dport $target_port -j ACCEPT"
         ip6tables -A FORWARD -p udp -d "$target_ip" --dport "$target_port" -j ACCEPT
     fi
 
