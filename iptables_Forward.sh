@@ -118,9 +118,8 @@ elif [[ $protocol_choice -eq 2 ]]; then
     fi
 
     # 提取IPv6地址和端口，去掉方括号
-    target_ip="${target_ip_port#\[}"      # 去掉左方括号
-    target_ip="${target_ip%\]}"            # 去掉右方括号
-    target_port="${target_ip_port##*:}"    # 提取端口部分
+    target_ip="${target_ip_port:1:-1}"  # 去掉左右方括号
+    target_port="${target_ip_port##*:}"  # 提取端口部分
 
     # 确保提取正确
     echo "Target IP: $target_ip"
