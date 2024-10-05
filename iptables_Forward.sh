@@ -166,10 +166,11 @@ elif [[ $protocol_choice -eq 2 ]]; then
 
     # 设置 FORWARD 规则
     echo "Running command: ip6tables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT"
-    ip6tables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+    ip6tables -A FORWARD -i $interface -o $interface -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
     if [[ $protocol == "tcp" ]]; then
         echo "Running command: ip6tables -A FORWARD -p tcp -d $target_ip --dport $target_port -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT"
         ip6tables -A FORWARD -p tcp -d "$target_ip" --dport "$target_port" -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
+        ip6tables -A FORWARD -p udp -d "$target_ip" --dport "$target_port" -j ACCEPT
     elif [[ $protocol == "udp" ]]; then
         echo "Running command: ip6tables -A FORWARD -p udp -d $target_ip --dport $target_port -j ACCEPT"
         ip6tables -A FORWARD -p udp -d "$target_ip" --dport "$target_port" -j ACCEPT
