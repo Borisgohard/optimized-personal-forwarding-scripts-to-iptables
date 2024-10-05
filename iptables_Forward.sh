@@ -95,6 +95,9 @@ elif [[ $protocol_choice -eq 2 ]]; then
         exit 1
     fi
 
+    # 调试输出
+    echo "Forwarding from port $local_port to [$target_ip]:$target_port"
+
     # 设置 NAT 规则
     if [[ $protocol == "tcp" ]]; then
         # TCP转发
