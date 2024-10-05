@@ -154,8 +154,8 @@ elif [[ $protocol_choice -eq 2 ]]; then
         ip6tables -t nat -A PREROUTING -i "$interface" -p udp --dport "$local_port" -j DNAT --to-destination "$target_ip"
     elif [[ $protocol == "udp" ]]; then
         ip6tables -t nat -A PREROUTING -i "$interface" -p udp --dport "$local_port" -j DNAT --to-destination "$target_ip"
-        
-
+    fi
+    
     # 设置 POSTROUTING 规则
     if [[ $protocol == "tcp" ]]; then
         ip6tables -t nat -A POSTROUTING -o "$interface" -p tcp -d "$target_ip" --dport "$target_port" -j SNAT --to-source "$ipv6_address"
