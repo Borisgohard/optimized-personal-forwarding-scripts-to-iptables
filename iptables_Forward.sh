@@ -21,20 +21,6 @@ fi
 iptables -F
 iptables -t nat -F
 
-# 启用数据转发并永久化设置
-echo "Enabling IP forwarding permanently..."
-
-# 修改 /etc/sysctl.conf 文件以永久启用转发
-if ! grep -q "net.ipv4.ip_forward=1" /etc/sysctl.conf; then
-    echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
-fi
-
-if ! grep -q "net.ipv6.conf.all.forwarding=1" /etc/sysctl.conf; then
-    echo "net.ipv6.conf.all.forwarding=1" >> /etc/sysctl.conf
-fi
-
-# 立即应用设置
-sysctl -p
 
 # 选择协议
 echo "Select the protocol for forwarding:"
@@ -58,9 +44,14 @@ fi
 ipv4_address=$(hostname -I | awk '{print $1}')
 ipv6_address=$(ip -6 addr show | awk '/inet6/ && /scope global/ {print $2}' | sed 's%/%[%g; s%$%]:%g; s%\[[0-9]*\]:$%%g' | head -n 1)
 
-
+   # IPv4配置
 if [[ $protocol_choice -eq 1 ]]; then
-    # IPv4配置
+    # 启用数据转发并永久化设置
+    if ! grep -q "net.ipv4.ip_forward=1" /etc/sysctl.conf; then
+        echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+    fi
+    # 立即应用设置
+    sysctl -p
     read -p "Enter the local port to forward: " local_port
     read -p "Enter the target IPv4 address: " target_ip
     read -p "Enter the target port: " target_port
@@ -104,9 +95,15 @@ if [[ $protocol_choice -eq 1 ]]; then
     elif [[ $protocol == "udp" ]]; then
         iptables -A FORWARD -i $interface -p udp -d $target_ip --dport $target_port -j ACCEPT
     fi
-
+    # 保存配置
+    iptables-save > /etc/iptables/rules.v4
 # IPv6配置
 elif [[ $protocol_choice -eq 2 ]]; then
+    if ! grep -q "net.ipv6.conf.all.forwarding=1" /etc/sysctl.conf; then
+        echo "net.ipv6.conf.all.forwarding=1" >> /etc/sysctl.conf
+    fi
+    # 立即应用设置
+    sysctl -p
     # 获取目标IPv6地址和端口
     read -p "Enter the local port to forward: " local_port
     read -p "Enter the target IPv6 address (use [IPV6_ADDRESS]:PORT format): " target_ip_port
@@ -181,7 +178,8 @@ elif [[ $protocol_choice -eq 2 ]]; then
         echo "Running command: ip6tables -A FORWARD -p udp -d $target_ip --dport $target_port -j ACCEPT"
         ip6tables -A FORWARD -p udp -d "$target_ip" --dport "$target_port" -j ACCEPT
     fi
-
+    # 保存配置
+    ip6tables-save > /etc/iptables/rules.v6
 else
     echo "Invalid choice. Exiting."
     exit 1
@@ -191,10 +189,6 @@ fi
 iptables -A FORWARD -j LOG --log-prefix "Forwarded packet: " --log-level 4
 # 设置ipv6日志记录
 ip6tables -A FORWARD -j LOG --log-prefix "Forwarded IPv6 packet: " --log-level 4
-
-# 保存配置
-iptables-save > /etc/iptables/rules.v4
-ip6tables-save > /etc/iptables/rules.v6
 
 # 重启iptables服务
 echo "Restarting iptables..."
