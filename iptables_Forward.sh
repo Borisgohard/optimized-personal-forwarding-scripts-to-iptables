@@ -92,50 +92,53 @@ if [[ $protocol_choice -eq 1 ]]; then
 
 # IPv6配置
 elif [[ $protocol_choice -eq 2 ]]; then
-# 获取目标IPv6地址和端口
-read -p "Enter the target IPv6 address (use [IPV6_ADDRESS]:PORT format): " target_ip_port
+    # 获取目标IPv6地址和端口
+    read -p "Enter the local port to forward: " local_port
+    read -p "Enter the target IPv6 address (use [IPV6_ADDRESS]:PORT format): " target_ip_port
 
-# 确保输入格式正确
-if [[ ! "$target_ip_port" =~ ^\[[0-9a-fA-F:]+\]:[0-9]+$ ]]; then
-    echo "Invalid target address format. Use [IPV6_ADDRESS]:PORT format. Exiting."
-    exit 1
-fi
+    # 确保输入格式正确
+    if [[ ! "$target_ip_port" =~ ^\[[0-9a-fA-F:]+\]:[0-9]+$ ]]; then
+        echo "Invalid target address format. Use [IPV6_ADDRESS]:PORT format. Exiting."
+        exit 1
+    fi
 
-# 提取IPv6地址和端口，确保保留方括号
-target_ip="$target_ip_port"
-target_port=${target_ip_port##*:}
+    # 提取IPv6地址和端口，确保保留方括号
+    target_ip="$target_ip_port"
+    target_port=${target_ip_port##*:}
 
-# 检查端口是否为空
-if [[ -z "$target_port" ]]; then
-    echo "Target port is empty. Exiting."
-    exit 1
-fi
-# 打印调试信息
-echo "Target IP: $target_ip"
-echo "Target Port: $target_port"
+    # 检查端口是否为空
+    if [[ -z "$local_port" || -z "$target_port" ]]; then
+        echo "Local port or target port is empty. Exiting."
+        exit 1
+    fi
+
+    # 打印调试信息
+    echo "Local Port: $local_port"
+    echo "Target IP: $target_ip"
+    echo "Target Port: $target_port"
+
     # 设置 NAT 规则
     if [[ $protocol == "tcp" ]]; then
         # TCP转发
-        ip6tables -t nat -A PREROUTING -i $interface -p tcp --dport $local_port -j DNAT --to-destination $target_ip:$target_port
-        ip6tables -t nat -A POSTROUTING -o $interface -p tcp -d $target_ip --dport $target_port -j SNAT --to-source $ipv6_address
+        ip6tables -t nat -A PREROUTING -i "$interface" -p tcp --dport "$local_port" -j DNAT --to-destination "$target_ip:$target_port"
+        ip6tables -t nat -A POSTROUTING -o "$interface" -p tcp -d "$target_ip" --dport "$target_port" -j SNAT --to-source "$ipv6_address"
 
         # UDP转发
-        ip6tables -t nat -A PREROUTING -i $interface -p udp --dport $local_port -j DNAT --to-destination $target_ip:$target_port
-        ip6tables -t nat -A POSTROUTING -o $interface -p udp -d $target_ip --dport $target_port -j SNAT --to-source $ipv6_address
+        ip6tables -t nat -A PREROUTING -i "$interface" -p udp --dport "$local_port" -j DNAT --to-destination "$target_ip:$target_port"
+        ip6tables -t nat -A POSTROUTING -o "$interface" -p udp -d "$target_ip" --dport "$target_port" -j SNAT --to-source "$ipv6_address"
     elif [[ $protocol == "udp" ]]; then
         # 仅UDP转发
-        ip6tables -t nat -A PREROUTING -i $interface -p udp --dport $local_port -j DNAT --to-destination $target_ip:$target_port
-        ip6tables -t nat -A POSTROUTING -o $interface -p udp -d $target_ip --dport $target_port -j SNAT --to-source $ipv6_address
+        ip6tables -t nat -A PREROUTING -i "$interface" -p udp --dport "$local_port" -j DNAT --to-destination "$target_ip:$target_port"
+        ip6tables -t nat -A POSTROUTING -o "$interface" -p udp -d "$target_ip" --dport "$target_port" -j SNAT --to-source "$ipv6_address"
     fi
-    
+
     # 设置 FORWARD 规则
     ip6tables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
     if [[ $protocol == "tcp" ]]; then
-        ip6tables -A FORWARD -p tcp -d $target_ip --dport $target_port -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
+        ip6tables -A FORWARD -p tcp -d "$target_ip" --dport "$target_port" -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
     elif [[ $protocol == "udp" ]]; then
-        ip6tables -A FORWARD -p udp -d $target_ip --dport $target_port -j ACCEPT
+        ip6tables -A FORWARD -p udp -d "$target_ip" --dport "$target_port" -j ACCEPT
     fi
-    
 
 else
     echo "Invalid choice. Exiting."
