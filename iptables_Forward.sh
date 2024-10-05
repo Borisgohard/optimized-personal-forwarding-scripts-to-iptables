@@ -110,20 +110,22 @@ elif [[ $protocol_choice -eq 2 ]]; then
     # 获取目标IPv6地址和端口
     read -p "Enter the local port to forward: " local_port
     read -p "Enter the target IPv6 address (use [IPV6_ADDRESS]:PORT format): " target_ip_port
-
-         # 确保输入格式正确
+    
+    # 确保输入格式正确
     if [[ ! "$target_ip_port" =~ ^\[[0-9a-fA-F:]+\]:[0-9]+$ ]]; then
         echo "Invalid target address format. Use [IPV6_ADDRESS]:PORT format. Exiting."
         exit 1
     fi
     
-    # 提取IPv6地址和端口，去掉方括号
-    target_ip="${target_ip_port:1:-1}"  # 去掉左右方括号
-    target_port="${target_ip_port##*:}"  # 提取端口部分
+    # 提取IPv6地址和端口
+    target_ip="${target_ip_port#\[]}"     # 去掉左方括号
+    target_ip="${target_ip%%]*}"           # 去掉右方括号
+    target_port="${target_ip_port##*:}"    # 提取端口部分
     
     # 确保提取正确
     echo "Target IP: $target_ip"
     echo "Target Port: $target_port"
+
 
     # 检查端口是否为空
     if [[ -z "$local_port" || -z "$target_port" ]]; then
