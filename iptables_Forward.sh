@@ -90,12 +90,11 @@ if [[ $protocol_choice -eq 1 ]]; then
         iptables -A FORWARD -i $interface -p udp -d $target_ip --dport $target_port -j ACCEPT
     fi
 
-
+# IPv6配置
 elif [[ $protocol_choice -eq 2 ]]; then
-    # IPv6配置
-    read -p "Enter the local port to forward: " local_port
-    read -p "Enter the target IPv6 address (use [IPV6_ADDRESS]:PORT format): " target_ip_port
-    
+# 获取目标IPv6地址和端口
+read -p "Enter the target IPv6 address (use [IPV6_ADDRESS]:PORT format): " target_ip_port
+
 # 确保输入格式正确
 if [[ ! "$target_ip_port" =~ ^\[[0-9a-fA-F:]+\]:[0-9]+$ ]]; then
     echo "Invalid target address format. Use [IPV6_ADDRESS]:PORT format. Exiting."
@@ -106,6 +105,14 @@ fi
 target_ip="$target_ip_port"
 target_port=${target_ip_port##*:}
 
+# 检查端口是否为空
+if [[ -z "$target_port" ]]; then
+    echo "Target port is empty. Exiting."
+    exit 1
+fi
+# 打印调试信息
+echo "Target IP: $target_ip"
+echo "Target Port: $target_port"
     # 设置 NAT 规则
     if [[ $protocol == "tcp" ]]; then
         # TCP转发
