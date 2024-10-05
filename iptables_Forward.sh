@@ -56,7 +56,7 @@ fi
 
 # 获取本机的IPv4和IPv6地址
 ipv4_address=$(hostname -I | awk '{print $1}')
-ipv6_address=$(ip -6 addr show | awk '/inet6/ && /scope global/ {print $2}' | sed 's%/%[%g; s%$%]:%g' | head -n 1)
+ipv6_address=$(ip -6 addr show | awk '/inet6/ && /scope global/ {print $2}' | sed 's%/%[%g; s%$%]:%g; s%\[[0-9]*\]:$%%g' | head -n 1)
 
 
 if [[ $protocol_choice -eq 1 ]]; then
@@ -64,7 +64,22 @@ if [[ $protocol_choice -eq 1 ]]; then
     read -p "Enter the local port to forward: " local_port
     read -p "Enter the target IPv4 address: " target_ip
     read -p "Enter the target port: " target_port
+    # 检查端口是否为空
+    if [[ -z "$local_port" || -z "$target_port" ]]; then
+        echo "Local port or target port is empty. Exiting."
+        exit 1
+    fi
 
+    # 检查端口是否为有效数字且在合法范围内
+    if ! [[ "$local_port" =~ ^[0-9]+$ ]] || ! [[ "$target_port" =~ ^[0-9]+$ ]]; then
+        echo "Local port or target port is not a valid number. Exiting."
+        exit 1
+    fi
+
+    if (( local_port < 1 || local_port > 65535 || target_port < 1 || target_port > 65535 )); then
+        echo "Local port or target port is out of range (1-65535). Exiting."
+        exit 1
+    fi
     # 设置 PREROUTING 规则
     if [[ $protocol == "tcp" ]]; then
         iptables -t nat -A PREROUTING -i $interface -p tcp --dport $local_port -j DNAT --to-destination $target_ip:$target_port
