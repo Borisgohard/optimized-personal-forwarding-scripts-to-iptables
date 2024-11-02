@@ -21,7 +21,8 @@ fi
 # 清除现有的规则
 iptables -F
 iptables -t nat -F
-
+ip6tables -F
+ip6tables -t nat -F
 
 # 选择协议
 echo "Select the protocol for forwarding:"
