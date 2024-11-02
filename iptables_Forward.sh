@@ -151,27 +151,45 @@ elif [[ $protocol_choice -eq 2 ]]; then
     
     # 设置 PREROUTING 规则
     if [[ $protocol == "tcp" ]]; then
-        ip6tables -t nat -A PREROUTING -i "$interface" -p tcp --dport "$local_port" -j DNAT --to-destination "$target_ip"
-        ip6tables -t nat -A PREROUTING -i "$interface" -p udp --dport "$local_port" -j DNAT --to-destination "$target_ip"
+       if ! ip6tables -t nat -C PREROUTING -i "$interface" -p tcp --dport "$local_port" -j DNAT --to-destination "$target_ip" 2>/dev/null; then
+           ip6tables -t nat -A PREROUTING -i "$interface" -p tcp --dport "$local_port" -j DNAT --to-destination "$target_ip"
+       fi
+       if ! ip6tables -t nat -C PREROUTING -i "$interface" -p udp --dport "$local_port" -j DNAT --to-destination "$target_ip" 2>/dev/null; then
+           ip6tables -t nat -A PREROUTING -i "$interface" -p udp --dport "$local_port" -j DNAT --to-destination "$target_ip"
+       fi
     elif [[ $protocol == "udp" ]]; then
-        ip6tables -t nat -A PREROUTING -i "$interface" -p udp --dport "$local_port" -j DNAT --to-destination "$target_ip"
+       if ! ip6tables -t nat -C PREROUTING -i "$interface" -p udp --dport "$local_port" -j DNAT --to-destination "$target_ip" 2>/dev/null; then
+           ip6tables -t nat -A PREROUTING -i "$interface" -p udp --dport "$local_port" -j DNAT --to-destination "$target_ip"
+       fi
     fi
     
     # 设置 POSTROUTING 规则
     if [[ $protocol == "tcp" ]]; then
-        ip6tables -t nat -A POSTROUTING -o "$interface" -p tcp -d "$target_ip" --dport "$target_port" -j SNAT --to-source "$ipv6_address"
-        ip6tables -t nat -A POSTROUTING -o "$interface" -p udp -d "$target_ip" --dport "$target_port" -j SNAT --to-source "$ipv6_address"
+       if ! ip6tables -t nat -C POSTROUTING -o "$interface" -p tcp -d "$target_ip" --dport "$target_port" -j SNAT --to-source "$ipv6_address" 2>/dev/null; then
+           ip6tables -t nat -A POSTROUTING -o "$interface" -p tcp -d "$target_ip" --dport "$target_port" -j SNAT --to-source "$ipv6_address"
+       fi
+       if ! ip6tables -t nat -C POSTROUTING -o "$interface" -p udp -d "$target_ip" --dport "$target_port" -j SNAT --to-source "$ipv6_address" 2>/dev/null; then
+           ip6tables -t nat -A POSTROUTING -o "$interface" -p udp -d "$target_ip" --dport "$target_port" -j SNAT --to-source "$ipv6_address"
+       fi
     elif [[ $protocol == "udp" ]]; then
-        ip6tables -t nat -A POSTROUTING -o "$interface" -p udp -d "$target_ip" --dport "$target_port" -j SNAT --to-source "$ipv6_address"
+       if ! ip6tables -t nat -C POSTROUTING -o "$interface" -p udp -d "$target_ip" --dport "$target_port" -j SNAT --to-source "$ipv6_address" 2>/dev/null; then
+           ip6tables -t nat -A POSTROUTING -o "$interface" -p udp -d "$target_ip" --dport "$target_port" -j SNAT --to-source "$ipv6_address"
+       fi
     fi
 
     # 设置 FORWARD 规则
     ip6tables -A FORWARD -i $interface -o $interface -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
     if [[ $protocol == "tcp" ]]; then
-        ip6tables -A FORWARD -p tcp -d "$target_ip" --dport "$target_port" -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
-        ip6tables -A FORWARD -p udp -d "$target_ip" --dport "$target_port" -j ACCEPT
+       if ! ip6tables -C FORWARD -p tcp -d "$target_ip" --dport "$target_port" -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT 2>/dev/null; then
+           ip6tables -A FORWARD -p tcp -d "$target_ip" --dport "$target_port" -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
+       fi
+       if ! ip6tables -C FORWARD -p udp -d "$target_ip" --dport "$target_port" -j ACCEPT 2>/dev/null; then
+           ip6tables -A FORWARD -p udp -d "$target_ip" --dport "$target_port" -j ACCEPT
+       fi
     elif [[ $protocol == "udp" ]]; then
-        ip6tables -A FORWARD -p udp -d "$target_ip" --dport "$target_port" -j ACCEPT
+       if ! ip6tables -C FORWARD -p udp -d "$target_ip" --dport "$target_port" -j ACCEPT 2>/dev/null; then
+           ip6tables -A FORWARD -p udp -d "$target_ip" --dport "$target_port" -j ACCEPT
+       fi
     fi
     # 设置ipv6日志记录
     ip6tables -A FORWARD -j LOG --log-prefix "Forwarded IPv6 packet: " --log-level 4
